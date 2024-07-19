@@ -1,6 +1,6 @@
 import { Router } from "express";
 // import { loginUser, logoutUser, registerUser, refreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails } from "../controllers/user.controller.js";
-import { loginUser, logoutUser, registerUser } from "../controllers/user.controller.js";
+import { loginUser, logoutUser, registerSchool, registerStudent } from "../controllers/user.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
 import { verifyJWT } from "../middleware/auth.middleware.js";
 
@@ -18,10 +18,22 @@ router.route("/register").post(
             maxCount: 1
         }
     ]),
-    registerUser
+    registerStudent
 )
 
 router.route("/login").post(loginUser)
+router.route("/registerSchool").post(
+    upload.fields([
+        {
+            name: "avatar",
+            maxCount: 1
+        },
+        {
+            name: "coverImage",
+            maxCount: 1
+        }
+    ]),
+    registerSchool)
 
 // secured routes
 router.route("/logout").post(verifyJWT, logoutUser)
