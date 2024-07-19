@@ -17,7 +17,10 @@ const questionPaperSchema = new Schema(
           total_marks: {
             type: String,
           },
-          class: { 
+          School_class: { 
+            type: String,
+          },
+          difficulty_level: { 
             type: String,
           }
     },

@@ -5,6 +5,9 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { response } from "express";
 import jwt from "jsonwebtoken";
 import { SchoolDetails } from "../models/SchoolDetails.model.js";
+import { questionBank } from "../models/questionBank.model.js";
+import { questionPaper } from "../models/questionPaper.model.js";
+
 
 const generateAccessAndRefreshTokens = async (userId) => {
     try {
@@ -23,6 +26,70 @@ const generateAccessAndRefreshTokens = async (userId) => {
         );
     }
 };
+
+const registerAdmin = asyncHandler(async (req, res) => {
+    // get user details from frontend
+    // validation - not empty
+    // check if user already exists: username, email
+    // check for images, check for avatar
+    // upload them to cloudinary, avatar
+    // create user object - create entry in db
+    // remove password and refresh token field from response
+    // check for user creation
+    // return response
+
+    const {
+        fullName,
+        email,
+        password,
+        contact_no,
+        user_id,
+
+    } = req.body;
+    console.log("email: ", email);
+
+    if (
+        [fullName, email, password].some(
+            (field) => field?.trim() === ""
+        )
+    ) {
+        throw new ApiError(400, "All field are required");
+    }
+
+    const existedUser = await User.findOne({
+        $or: [{ user_id }, { email }],
+    });
+
+    if (existedUser) {
+        throw new ApiError(409, "User with email or user_id already exist");
+    }
+
+    const user = await User.create({
+        fullName,
+        email,
+        password,
+        contact_no,
+        user_id,
+
+    });
+
+    const createdUser = await User.findById(user._id).select(
+        "-password -refreshToken"
+    );
+
+    if (!createdUser) {
+        throw new ApiError(
+            500,
+            "Something went wrong while registring the user"
+        );
+    }
+
+    return res
+        .status(201)
+        .json(
+            new ApiResponse(200, createdUser, "User registered successfully")
+        );
+});
 
 const registerStudent = asyncHandler(async (req, res) => {
     // get user details from frontend
@@ -44,8 +111,8 @@ const registerStudent = asyncHandler(async (req, res) => {
         fathers_name,
         dob,
         contact_no,
-        student_id,
         user_id,
+
     } = req.body;
     console.log("email: ", email);
 
@@ -58,11 +125,11 @@ const registerStudent = asyncHandler(async (req, res) => {
     }
 
     const existedUser = await User.findOne({
-        $or: [{ student_id }, { email }],
+        $or: [{ user_id }, { email }],
     });
 
     if (existedUser) {
-        throw new ApiError(409, "User with email or student_id already exist");
+        throw new ApiError(409, "User with email or user_id already exist");
     }
 
     const user = await User.create({
@@ -74,8 +141,8 @@ const registerStudent = asyncHandler(async (req, res) => {
         fathers_name,
         dob,
         contact_no,
-        student_id,
         user_id,
+
     });
 
     const createdUser = await User.findById(user._id).select(
@@ -124,7 +191,7 @@ const registerSchool = asyncHandler(async (req, res) => {
         throw new ApiError(400, "schoolName or email is required");
     }
 
-    const existedSchool = await SchoolDetails.findOne({
+    const existedSchool = await User.findOne({
         $or: [{ school_id }, { email }],
     });
 
@@ -132,11 +199,11 @@ const registerSchool = asyncHandler(async (req, res) => {
         throw new ApiError(409, "School with email or school_id already exist");
     }
 
-    const school = await SchoolDetails.create({
+    const school = await User.create({
         schoolName, email, school_id, address, spoc_name, spoc_password, spoc_email, principal_name, principal_id, principal_email, principal_password
     });
 
-    const createdSchool = await SchoolDetails.findById(school._id).select(
+    const createdSchool = await User.findById(school._id).select(
         "-password -refreshToken"
     );
 
@@ -242,53 +309,74 @@ const logoutUser = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, {}, "User logged Out"));
 });
 
-// const ccdd = asyncHandler(async (req, res) => {
+const createquestionBank = asyncHandler(async (req, res) => {
+    const { subject, question, answer, options, topic, difficulty_level } = req.body
 
-//     const { schoolName, email, school_id, address, spoc_name, spoc_password, spoc_email, principal_name, principal_id, principal_email, principal_password } = req.body;
+    if (!(subject || topic || question)) {
+        throw new ApiError(400, "Subject or topic or question is required")
+    }
 
-//     console.log("email: ", email);
-//     console.log("schoolName: ", schoolName);
+    // const existedQuestion = await find({
+    //     $or: [{ question }]
+    // })
 
-//     
+    // if (existedQuestion) {
+    //     throw new ApiError(409, "Question is existed")
+    // }
 
-//     if (
-//         [schoolName, principal_name, email].some(
-//             (field) => field?.trim() === ""
-//         )
-//     ) {
-//         throw new ApiError(400, "All field are required");
-//     }
+    const Question = await questionBank.create({
+        subject,
+        question,
+        answer,
+        options,
+        topic,
+        difficulty_level
+    })
 
-//     const existedSchool = await SchoolDetails.findOne({
-//         $or: [{ school_id }, { schoolName }],
-//     });
+    const createdQuestion = await questionBank.findById(Question._id).select(
+        "-refreshToken"
+    )
 
-//     if (existedSchool) {
-//         throw new ApiError(409, "School with email or school_id already exist");
-//     }
+    if (!createdQuestion) {
+        throw new ApiError(500, "Something went wrong while creating question paper")
+    }
 
-//     const School = await SchoolDetails.create({
-//         schoolName, email, school_id, address, spoc_name, spoc_password, spoc_email, principal_name, principal_id, principal_email, principal_password
-//     });
+    return res
+        .status(201)
+        .json(
+            new ApiResponse(200, createdQuestion, "Question Paper created successfully")
+        )
 
-//     const createdSchool = await SchoolDetails.findById(School._id).select(
-//         "-password -refreshToken"
-//     );
+})
 
-//     if (!createdSchool) {
-//         throw new ApiError(
-//             500,
-//             "Something went wrong while registring the School"
-//         );
-//     }
+const createQuestionPaper = asyncHandler(async (req, res) => {
+    const { question_id, school_id, test_name, duration, total_marks, School_class, difficulty_level } = req.body
 
-//     return res
-//         .status(201)
-//         .json(
-//             new ApiResponse(200, createdSchool, "School registered successfully")
-//         );
-// }
-// )
+    const QuestionPaper = await questionPaper.create({
+        question_id,
+        school_id,
+        test_name,
+        duration,
+        total_marks,
+        School_class,
+        difficulty_level
+    })
+
+    const scheduledQuestionPaper = await questionPaper.findById(QuestionPaper._id).select(
+        "-refreshToken"
+    )
+
+    if (!scheduledQuestionPaper) {
+        throw new ApiError(500, "Something went wrong while Sheduling Paper")
+    }
+
+    return res
+        .status(201)
+        .json(
+            new ApiResponse(200, scheduledQuestionPaper, "Sheduled Paper successfully")
+        )
+
+})
 
 
 // const refreshAccessToken = asyncHandler(async (req, res) => {
@@ -392,10 +480,13 @@ const logoutUser = asyncHandler(async (req, res) => {
 // })
 
 export {
+    registerAdmin,
     registerStudent,
     loginUser,
     logoutUser,
     registerSchool,
+    createquestionBank,
+    createQuestionPaper,
     // refreshAccessToken,
     // changeCurrentPassword,
     // getCurrentUser,

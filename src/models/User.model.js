@@ -4,17 +4,12 @@ import bcrypt from "bcrypt";
 
 const userSchema = new Schema(
     {
-        username: {
+        fullName: {
             type: String,
-             trim: true,
+            trim: true,
             index: true,
         },
-        email: {
-            type: String,
-            unique: true,
-            lowercase: true,
-            trim: true,
-        },
+
         StudentClass: {
             type: String,
         },
@@ -33,7 +28,7 @@ const userSchema = new Schema(
         },
         password: {
             type: String,
-            required: [true, "Password is required"],
+            
         },
         selectDashboard: {
             type: String,
@@ -42,7 +37,54 @@ const userSchema = new Schema(
         refreshToken: {
             type: String,
         },
+        schoolName: {
+            type: String,
+        },
+        email: {
+            type: String,
+            unique: true,
+            lowercase: true,
+            trim: true,
+        },
+        contact_no: {
+            type: String,
+        },
+
+        selectDashboard: {
+            type: String,
+            enum: ["Admin", "School", "Student"],
+        },
+        refreshToken: {
+            type: String,
+        },
         school_id: {
+            type: String,
+        },
+        spoc_name: {
+            type: String,
+        },
+        spoc_id: {
+            type: String,
+        },
+        spoc_password: {
+            type: String,
+        },
+        spoc_email: {
+            type: String,
+        },
+        address: {
+            type: String,
+        },
+        principal_name: {
+            type: String,
+        },
+        principal_id: {
+            type: String,
+        },
+        principal_password: {
+            type: String,
+        },
+        principal_email: {
             type: String,
         },
     },

@@ -4,56 +4,7 @@ import bcrypt from "bcrypt";
 
 const schoolDetailSchema = new Schema(
     {
-        schoolName:{
-            type: String,
-        },
-        email: {
-            type: String,
-            unique: true,
-            lowercase: true,
-            trim: true,
-        },
-        contact_no: {
-            type: String,
-        },
-
-        selectDashboard: {
-            type: String,
-            enum: ["Admin", "School", "Student"],
-        },
-        refreshToken: {
-            type: String,
-        },
-        school_id: {
-            type: String,
-        },
-        spoc_name: {
-            type: String,
-        },
-        spoc_id: {
-            type: String,
-        },
-        spoc_password: {
-            type: String,
-        },
-        spoc_email: {
-            type: String,
-        },
-        address: {
-            type: String,
-        },
-        principal_name: {
-            type: String,
-        },
-        principal_id: {
-            type: String,
-        },
-        principal_password: {
-            type: String,
-        },
-        principal_email: {
-            type: String,
-        },
+        
     },
     
     {

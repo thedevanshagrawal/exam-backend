@@ -1,13 +1,13 @@
 import { Router } from "express";
 // import { loginUser, logoutUser, registerUser, refreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails } from "../controllers/user.controller.js";
-import { loginUser, logoutUser, registerSchool, registerStudent } from "../controllers/user.controller.js";
+import { loginUser, logoutUser, createquestionBank, registerAdmin, registerSchool, registerStudent, createQuestionPaper } from "../controllers/user.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
 import { verifyJWT } from "../middleware/auth.middleware.js";
 
 
 const router = Router()
 
-router.route("/register").post(
+router.route("/registerStudent").post(
     upload.fields([
         {
             name: "avatar",
@@ -21,7 +21,31 @@ router.route("/register").post(
     registerStudent
 )
 
-router.route("/login").post(loginUser)
+router.route("/registerAdmin").post(
+    upload.fields([
+        {
+            name: "avatar",
+            maxCount: 1
+        },
+        {
+            name: "coverImage",
+            maxCount: 1
+        }
+    ]),
+    registerAdmin
+)
+
+router.route("/login").post(
+    upload.fields([
+        {
+            name: "avatar",
+            maxCount: 1
+        },
+        {
+            name: "coverImage",
+            maxCount: 1
+        }
+    ]), loginUser)
 router.route("/registerSchool").post(
     upload.fields([
         {
@@ -34,6 +58,34 @@ router.route("/registerSchool").post(
         }
     ]),
     registerSchool)
+
+router.route("/createquestionBank").post(
+    upload.fields([
+        {
+            name: "avatar",
+            maxCount: 1
+        },
+        {
+            name: "coverImage",
+            maxCount: 1
+        }
+    ]),
+    verifyJWT, createquestionBank
+)
+
+router.route("/createQuestionPaper").post(
+    upload.fields([
+        {
+            name: "avatar",
+            maxCount: 1
+        },
+        {
+            name: "coverImage",
+            maxCount: 1
+        }
+    ]),
+    verifyJWT, createQuestionPaper
+)
 
 // secured routes
 router.route("/logout").post(verifyJWT, logoutUser)
