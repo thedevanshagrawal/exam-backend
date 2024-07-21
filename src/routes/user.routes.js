@@ -1,6 +1,6 @@
 import { Router } from "express";
 // import { loginUser, logoutUser, registerUser, refreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails } from "../controllers/user.controller.js";
-import { loginUser, logoutUser, createquestionBank, registerAdmin, registerSchool, registerStudent, createQuestionPaper } from "../controllers/user.controller.js";
+import { loginUser, logoutUser, createquestionBank, registerAdmin, registerSchool, registerStudent, createQuestionPaper, studentProfile, schoolProfileInAdminProfile } from "../controllers/user.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
 import { verifyJWT } from "../middleware/auth.middleware.js";
 
@@ -89,6 +89,8 @@ router.route("/createQuestionPaper").post(
 
 // secured routes
 router.route("/logout").post(verifyJWT, logoutUser)
+router.route("/studentProfile").get(verifyJWT, studentProfile)
+router.route("/schoolProfileInAdminProfile").get(verifyJWT, schoolProfileInAdminProfile)
 // router.route("/refresh-token").post(refreshAccessToken)
 // router.route("/change-password").post(verifyJWT, changeCurrentPassword)
 // router.route("/current-user").get(verifyJWT, getCurrentUser)

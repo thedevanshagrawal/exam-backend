@@ -309,8 +309,62 @@ const logoutUser = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, {}, "User logged Out"));
 });
 
+const studentProfile = asyncHandler(async (req, res) => {
+    const { email } = req.query
+
+    if (!email) {
+        throw new ApiError(400, "email is required")
+    }
+
+    const studentDetails = await User.find(
+        {
+           
+            email
+        },
+        "-password"
+    )
+
+    if (!studentDetails?.length) {
+        throw new ApiError(404, "No student found for the given School Id")
+    }
+
+    return res
+        .status(201)
+        .json(new ApiResponse(
+            200, studentDetails, "Student information fetched successfully"
+        ))
+
+})
+
+const schoolProfileInAdminProfile = asyncHandler(async (req, res) => {
+    const { school_id, email } = req.query
+
+    if (!(school_id || email)) {
+        throw new ApiError(400, "School Id or email is required")
+    }
+
+    const schoolDetails = await User.find(
+        {
+            school_id,
+            email
+        },
+        "-password"
+    )
+
+    if (!schoolDetails?.length) {
+        throw new ApiError(404, "No schoolDetails found for the given School Id")
+    }
+
+    return res
+        .status(201)
+        .json(new ApiResponse(
+            200, studentDetails, "schoolDetails information fetched successfully"
+        ))
+
+})
+
 const createquestionBank = asyncHandler(async (req, res) => {
-    const { subject, question, answer, options, topic, difficulty_level } = req.body
+    const { subject, question, answer, option1, option2, option3, option4, topic, difficulty_level } = req.body
 
     if (!(subject || topic || question)) {
         throw new ApiError(400, "Subject or topic or question is required")
@@ -328,7 +382,10 @@ const createquestionBank = asyncHandler(async (req, res) => {
         subject,
         question,
         answer,
-        options,
+        option1,
+        option2,
+        option3,
+        option4,
         topic,
         difficulty_level
     })
@@ -349,135 +406,79 @@ const createquestionBank = asyncHandler(async (req, res) => {
 
 })
 
-const createQuestionPaper = asyncHandler(async (req, res) => {
-    const { question_id, school_id, test_name, duration, total_marks, School_class, difficulty_level } = req.body
 
+
+const createQuestionPaper = asyncHandler(async (req, res) => {
+    const { question_id, school_id, test_name, duration, total_marks, School_class, difficulty_level } = req.body;
+
+    // First, aggregate the data from questionBank based on your criteria
+    const aggregatedData = await questionBank.aggregate([
+        {
+            $match: {
+                difficulty_level: difficulty_level // Adjust this to your specific criteria
+            }
+        },
+        // Project stage to include necessary fields
+        {
+            $project: {
+                subject: 1,
+                question: 1,
+                answer: 1,
+                option1: 1,
+                option2: 1,
+                option3: 1,
+                option4: 1,
+                topic: 1,
+                difficulty_level: 1
+            }
+        }
+    ]);
+
+    // Prepare the array of question IDs and the full questions data
+    const questionIds = aggregatedData.map(question => question._id.toString());
+    const questionsData = aggregatedData.map(question => ({
+        id: question._id.toString(),
+        subject: question.subject,
+        question: question.question,
+        answer: question.answer,
+        option1: question.option1,
+        option2: question.option2,
+        option3: question.option3,
+        option4: question.option4,
+        topic: question.topic,
+        difficulty_level: question.difficulty_level
+    }));
+
+    // Now, create the question paper with the aggregated question IDs and data
     const QuestionPaper = await questionPaper.create({
-        question_id,
+        question_id: questionIds,
         school_id,
         test_name,
         duration,
         total_marks,
         School_class,
-        difficulty_level
-    })
+        difficulty_level,
+        questionsData
+    });
 
-    const scheduledQuestionPaper = await questionPaper.findById(QuestionPaper._id).select(
-        "-refreshToken"
-    )
+    console.log("QuestionPaper", question_id);
+    console.log("questionsData", [...questionsData]);
 
-    if (!scheduledQuestionPaper) {
-        throw new ApiError(500, "Something went wrong while Sheduling Paper")
+    // Include the questions data in the response
+    const scheduledQuestionPaper = {
+        ...QuestionPaper._doc,
+        ...questionsData
+    };
+
+    if (!QuestionPaper) {
+        throw new ApiError(500, "Something went wrong while scheduling paper");
     }
 
-    return res
-        .status(201)
-        .json(
-            new ApiResponse(200, scheduledQuestionPaper, "Sheduled Paper successfully")
-        )
+    return res.status(201).json(
+        new ApiResponse(200, scheduledQuestionPaper, "Scheduled paper successfully")
+    );
+});
 
-})
-
-
-// const refreshAccessToken = asyncHandler(async (req, res) => {
-//     const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
-
-//     if (!incomingRefreshToken) {
-//         throw new ApiError(401, "unauthorized request")
-//     }
-
-//     try {
-//         const decodedToken = jwt.verify(
-//             incomingRefreshToken,
-//             process.env.REFRESH_TOKEN_SECRET
-//         )
-
-//         const user = await User.findById(decodedToken?._id)
-
-//         if (!user) {
-//             throw new ApiError(401, "Invalid refresh token")
-//         }
-
-//         if (incomingRefreshToken !== user?.refreshToken) {
-//             throw new ApiError(401, "Refresh is expired or used")
-//         }
-
-//         const options = {
-//             httpOnly: true,
-//             secure: true
-//         }
-
-//         const { accessToken, newRefreshToken } = await generateAccessAndRefreshTokens(user._id)
-
-//         return res
-//             .status(200)
-//             .cookie("accessToken", accessToken, options)
-//             .cookie("refreshToken", newRefreshToken, options)
-//             .json(
-//                 new ApiResponse(
-//                     200,
-//                     { accessToken, refreshToken: newRefreshToken },
-//                     "Access token refreshed"
-//                 )
-//             )
-
-//     } catch (error) {
-//         throw new ApiError(401, error?.message || "Invalid refresh token")
-//     }
-// })
-
-// const changeCurrentPassword = asyncHandler(async (req, res) => {
-//     const { oldPassword, newPassword } = req.body
-
-//     // const { oldPassword, newPassword, confirmPassword } = req.body
-
-//     // if (!(newPassword === confirmPassword)) {
-//     //     throw new ApiError(400, "Password not matched")
-//     // }
-
-//     const user = await User.findById(req.user?._id)
-//     const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
-
-//     if (!isPasswordCorrect) {
-//         throw new ApiError(400, "Invalid old Password")
-//     }
-
-//     user.password = newPassword
-//     await user.save({ validateBeforeSave: false })
-
-//     return res
-//         .status(200)
-//         .json(new ApiResponse(200, {}, "Password changed successfully"))
-// })
-
-// const getCurrentUser = asyncHandler(async (req, res) => {
-//     return res
-//         .status(200)
-//         .json(200, req.user, "current user fetched successfully")
-// })
-
-// const updateAccountDetails = asyncHandler(async (req, res) => {
-//     const { fullName, email } = req.body
-
-//     if (!fullName || !email) {
-//         throw new ApiError(400, "All fields are required")
-//     }
-
-//     const user = await User.findByIdAndUpdate(
-//         req.user?._id,
-//         {
-//             $set: {
-//                 fullName,       // or fullName: fullName
-//                 email,         // or email: email
-//             }
-//         },
-//         { new: true }
-//     ).select("-password")
-
-//     return res
-//         .status(200)
-//         .json(new ApiResponse(200, user, "Account Details updated successfully"))
-// })
 
 export {
     registerAdmin,
@@ -487,6 +488,8 @@ export {
     registerSchool,
     createquestionBank,
     createQuestionPaper,
+    studentProfile,
+    schoolProfileInAdminProfile,
     // refreshAccessToken,
     // changeCurrentPassword,
     // getCurrentUser,
