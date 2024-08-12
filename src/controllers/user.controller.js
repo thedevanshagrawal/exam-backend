@@ -103,7 +103,7 @@ const registerStudent = asyncHandler(async (req, res) => {
     // return response
 
     const {
-        username,
+
         fullName,
         email,
         password,
@@ -117,7 +117,7 @@ const registerStudent = asyncHandler(async (req, res) => {
     console.log("email: ", email);
 
     if (
-        [username, fullName, email, password].some(
+        [fullName, email, password].some(
             (field) => field?.trim() === ""
         )
     ) {
@@ -133,7 +133,7 @@ const registerStudent = asyncHandler(async (req, res) => {
     }
 
     const user = await User.create({
-        username,
+
         fullName,
         email,
         password,
@@ -221,68 +221,126 @@ const registerSchool = asyncHandler(async (req, res) => {
         );
 });
 
+// const loginUser = asyncHandler(async (req, res) => {
+//     // req body -> data
+//     // username or email
+//     // find the user
+//     // password check
+//     // access and refresh token
+//     // send cookie
+
+//     const { email, selectDashboard, password } = req.body;
+//     console.log("req.body: ", req.body);
+
+//     console.log("email: ", email);
+//     console.log("selectDashboard: ", selectDashboard);
+//     console.log("password: ", password);
+
+//     if (!(selectDashboard || email)) {
+//         throw new ApiError(400, "selectDashboard or email is required");
+//     }
+
+//     const user = await User.findOne({
+//         $or: [{ selectDashboard }, { email }],
+//     });
+
+//     if (!user) {
+//         throw new ApiError(404, "User does not exist");
+//     }
+
+//     const isPasswordValid = await user.isPasswordCorrect(password);
+
+//     if (!isPasswordValid) {
+//         throw new ApiError(401, "Invalid user credentials");
+//     }
+
+//     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
+//         user._id
+//     );
+
+//     const loggedInUser = await User.findById(user._id).select(
+//         "-password -refreshToken"
+//     );
+
+//     const options = {
+//         httpOnly: true,
+//         secure: true,
+//     };
+
+//     return res
+//         .status(200)
+//         .cookie("accessToken", accessToken, options)
+//         .cookie("refreshToken", refreshToken, options)
+//         .json(
+//             new ApiResponse(
+//                 200,
+//                 {
+//                     user: loggedInUser,
+//                     accessToken,
+//                     refreshToken,
+//                 },
+//                 "User logged In Successfully"
+//             )
+//         );
+// });
+
 const loginUser = asyncHandler(async (req, res) => {
-    // req body -> data
-    // username or email
-    // find the user
-    // password check
-    // access and refresh token
-    // send cookie
-
     const { email, selectDashboard, password } = req.body;
-    console.log("req.body: ", req.body);
 
-    console.log("email: ", email);
-    console.log("selectDashboard: ", selectDashboard);
-    console.log("password: ", password);
+    // Log incoming request data for debugging
+    console.log("Request Data:", req.body);
 
-    if (!(selectDashboard || email)) {
-        throw new ApiError(400, "selectDashboard or email is required");
+    // Validate request data
+    if (!email || !selectDashboard || !password) {
+        return res.status(400).json({ message: "All fields are required" });
     }
 
+    // Find the user by email
     const user = await User.findOne({
-        $or: [{ selectDashboard }, { email }],
+        $or: [{ email }],
     });
 
+
+
     if (!user) {
-        throw new ApiError(404, "User does not exist");
+        return res.status(404).json({ message: "User does not exist" });
     }
 
+    // Check if the password is correct (without bcrypt)
     const isPasswordValid = await user.isPasswordCorrect(password);
 
     if (!isPasswordValid) {
         throw new ApiError(401, "Invalid user credentials");
     }
 
-    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
-        user._id
-    );
+    // Check if the selected dashboard matches the user's role
+    if (user.selectDashboard !== selectDashboard) {
+        return res.status(400).json({ message: "No dashboard available for this Dashboard" });
+    }
 
-    const loggedInUser = await User.findById(user._id).select(
-        "-password -refreshToken"
-    );
+    // Generate access and refresh tokens
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
 
     const options = {
         httpOnly: true,
         secure: true,
     };
 
+    // Log successful login for debugging
+    console.log("User Dashboard:", user.selectDashboard);
+    console.log("Selected Dashboard:", selectDashboard);
+
     return res
         .status(200)
         .cookie("accessToken", accessToken, options)
         .cookie("refreshToken", refreshToken, options)
-        .json(
-            new ApiResponse(
-                200,
-                {
-                    user: loggedInUser,
-                    accessToken,
-                    refreshToken,
-                },
-                "User logged In Successfully"
-            )
-        );
+        .json({
+            selectDashboard: user.selectDashboard, // Send back the correct role
+            token: accessToken, // This is what your frontend expects
+            message: "User logged in successfully"
+        });
 });
+
 
 const logoutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(
@@ -309,32 +367,21 @@ const logoutUser = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, {}, "User logged Out"));
 });
 
-const studentProfile = asyncHandler(async (req, res) => {
-    const { email } = req.query
+const studentProfile = async (req, res, next) => {
+    try {
+        const user = req.user; // This is set by the verifyJWT middleware
+        if (!user) {
+            return next(new ApiError(404, "User not found"));
+        }
 
-    if (!email) {
-        throw new ApiError(400, "email is required")
+        res.status(200).json({
+            success: true,
+            data: user, // Send the user's profile data
+        });
+    } catch (error) {
+        next(new ApiError(500, "Server Error"));
     }
-
-    const studentDetails = await User.find(
-        {
-           
-            email
-        },
-        "-password"
-    )
-
-    if (!studentDetails?.length) {
-        throw new ApiError(404, "No student found for the given School Id")
-    }
-
-    return res
-        .status(201)
-        .json(new ApiResponse(
-            200, studentDetails, "Student information fetched successfully"
-        ))
-
-})
+};
 
 const schoolProfileInAdminProfile = asyncHandler(async (req, res) => {
     const { school_id, email } = req.query
@@ -405,8 +452,6 @@ const createquestionBank = asyncHandler(async (req, res) => {
         )
 
 })
-
-
 
 const createQuestionPaper = asyncHandler(async (req, res) => {
     const { question_id, school_id, test_name, duration, total_marks, School_class, difficulty_level } = req.body;

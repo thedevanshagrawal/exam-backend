@@ -45,7 +45,10 @@ router.route("/login").post(
             name: "coverImage",
             maxCount: 1
         }
-    ]), loginUser)
+    ]),
+    loginUser
+)
+
 router.route("/registerSchool").post(
     upload.fields([
         {
@@ -57,7 +60,8 @@ router.route("/registerSchool").post(
             maxCount: 1
         }
     ]),
-    registerSchool)
+    registerSchool
+)
 
 router.route("/createquestionBank").post(
     upload.fields([
@@ -73,6 +77,7 @@ router.route("/createquestionBank").post(
     verifyJWT, createquestionBank
 )
 
+
 router.route("/createQuestionPaper").post(
     upload.fields([
         {
@@ -83,8 +88,7 @@ router.route("/createQuestionPaper").post(
             name: "coverImage",
             maxCount: 1
         }
-    ]),
-    verifyJWT, createQuestionPaper
+    ]), verifyJWT, createQuestionPaper
 )
 
 // secured routes
